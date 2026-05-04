@@ -18,6 +18,7 @@ pub mod resource_pack_stack;
 pub mod resource_packs_info;
 pub mod set_actor_data;
 pub mod set_actor_motion;
+pub mod set_health;
 pub mod set_player_gamemode;
 pub mod set_time;
 pub mod set_title;

@@ -2304,13 +2304,26 @@ impl Player {
             return;
         }
 
-        self.client
-            .enqueue_packet(&CSetHealth::new(
-                self.living_entity.health.load(),
-                self.hunger_manager.level.load().into(),
-                self.hunger_manager.saturation.load(),
-            ))
-            .await;
+        match &self.client {
+            ClientPlatform::Java(client) => {
+                client
+                    .enqueue_packet(&CSetHealth::new(
+                        self.living_entity.health.load(),
+                        self.hunger_manager.level.load().into(),
+                        self.hunger_manager.saturation.load(),
+                    ))
+                    .await;
+            }
+            ClientPlatform::Bedrock(client) => {
+                client
+                    .send_game_packet(
+                        &pumpkin_protocol::bedrock::client::set_health::CSetHealth::new(
+                            self.living_entity.health.load() as i32,
+                        ),
+                    )
+                    .await;
+            }
+        }
     }
 
     pub async fn tick_health(&self) {
