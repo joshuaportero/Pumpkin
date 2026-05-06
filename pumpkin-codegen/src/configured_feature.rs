@@ -226,7 +226,9 @@ pub fn value_to_configured_feature(v: &Value) -> TokenStream {
             if type_str == "minecraft:scattered_ore" {
                 quote! {
                     ConfiguredFeature::ScatteredOre(crate::generation::feature::features::scattered_ore::ScatteredOreFeature {
-                        // TODO
+                        size: #size,
+                        discard_chance_on_air_exposure: #discard,
+                        targets: vec![#(#targets),*],
                     })
                 }
             } else {
@@ -701,7 +703,16 @@ pub fn value_to_configured_feature(v: &Value) -> TokenStream {
             quote! { ConfiguredFeature::WeepingVines(crate::generation::feature::features::weeping_vines::WeepingVinesFeature {}) }
         }
         "minecraft:twisting_vines" => {
-            quote! { ConfiguredFeature::TwistingVines(crate::generation::feature::features::twisting_vines::TwistingVinesFeature {}) }
+            let spread_width = config["spread_width"].as_i64().unwrap_or(0) as i32;
+            let spread_height = config["spread_height"].as_i64().unwrap_or(0) as i32;
+            let max_height = config["max_height"].as_i64().unwrap_or(0) as i32;
+            quote! {
+                ConfiguredFeature::TwistingVines(crate::generation::feature::features::twisting_vines::TwistingVinesFeature {
+                    spread_width: #spread_width,
+                    spread_height: #spread_height,
+                    max_height: #max_height,
+                })
+            }
         }
         "minecraft:delta_feature" => {
             quote! { ConfiguredFeature::DeltaFeature(crate::generation::feature::features::delta_feature::DeltaFeatureFeature {}) }

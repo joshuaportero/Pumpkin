@@ -2738,13 +2738,31 @@ fn build_configured_features() -> std::collections::HashMap<String, ConfiguredFe
     map.insert(
         "ore_ancient_debris_large".to_string(),
         ConfiguredFeature::ScatteredOre(
-            crate::generation::feature::features::scattered_ore::ScatteredOreFeature {},
+            crate::generation::feature::features::scattered_ore::ScatteredOreFeature {
+                size: 3i32,
+                discard_chance_on_air_exposure: 1f32,
+                targets: vec![OreTarget {
+                    target: RuleTest::TagMatch(TagMatchRuleTest {
+                        tag: pumpkin_data::tag::Block::MINECRAFT_BASE_STONE_NETHER,
+                    }),
+                    state: pumpkin_data::Block::ANCIENT_DEBRIS.default_state,
+                }],
+            },
         ),
     );
     map.insert(
         "ore_ancient_debris_small".to_string(),
         ConfiguredFeature::ScatteredOre(
-            crate::generation::feature::features::scattered_ore::ScatteredOreFeature {},
+            crate::generation::feature::features::scattered_ore::ScatteredOreFeature {
+                size: 2i32,
+                discard_chance_on_air_exposure: 1f32,
+                targets: vec![OreTarget {
+                    target: RuleTest::TagMatch(TagMatchRuleTest {
+                        tag: pumpkin_data::tag::Block::MINECRAFT_BASE_STONE_NETHER,
+                    }),
+                    state: pumpkin_data::Block::ANCIENT_DEBRIS.default_state,
+                }],
+            },
         ),
     );
     map.insert(
@@ -4234,13 +4252,21 @@ fn build_configured_features() -> std::collections::HashMap<String, ConfiguredFe
     map.insert(
         "twisting_vines".to_string(),
         ConfiguredFeature::TwistingVines(
-            crate::generation::feature::features::twisting_vines::TwistingVinesFeature {},
+            crate::generation::feature::features::twisting_vines::TwistingVinesFeature {
+                spread_width: 8i32,
+                spread_height: 4i32,
+                max_height: 8i32,
+            },
         ),
     );
     map.insert(
         "twisting_vines_bonemeal".to_string(),
         ConfiguredFeature::TwistingVines(
-            crate::generation::feature::features::twisting_vines::TwistingVinesFeature {},
+            crate::generation::feature::features::twisting_vines::TwistingVinesFeature {
+                spread_width: 3i32,
+                spread_height: 1i32,
+                max_height: 2i32,
+            },
         ),
     );
     map.insert(
