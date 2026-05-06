@@ -140,7 +140,7 @@ impl LakeFeature {
         if Block::from_state_id(fluid_state.id).id == Block::WATER.id {
             for xx in 0..16 {
                 for zz in 0..16 {
-                    let freeze_pos = origin.add(xx as i32, 4, zz as i32);
+                    let freeze_pos = origin.add(xx, 4, zz);
                     let biome = chunk.get_biome_for_terrain_gen(
                         freeze_pos.0.x,
                         freeze_pos.0.y,

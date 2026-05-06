@@ -632,7 +632,49 @@ pub fn value_to_configured_feature(v: &Value) -> TokenStream {
             quote! { ConfiguredFeature::Vines(crate::generation::feature::features::vines::VinesFeature) }
         }
         "minecraft:root_system" => {
-            quote! { ConfiguredFeature::RootSystem(crate::generation::feature::features::root_system::RootSystemFeature {}) }
+            let feature = value_to_inline_placed_feature(&config["feature"]);
+            let required_vertical_space_for_tree = config["required_vertical_space_for_tree"]
+                .as_i64()
+                .unwrap_or(0) as i32;
+            let root_radius = config["root_radius"].as_i64().unwrap_or(0) as i32;
+            let root_replaceable = value_to_block_predicate(&config["root_replaceable"]);
+            let root_state_provider = value_to_block_state_provider(&config["root_state_provider"]);
+            let root_placement_attempts = config["root_placement_attempts"].as_i64().unwrap_or(0)
+                as i32;
+            let root_column_max_height = config["root_column_max_height"].as_i64().unwrap_or(0)
+                as i32;
+            let hanging_root_radius = config["hanging_root_radius"].as_i64().unwrap_or(0) as i32;
+            let hanging_roots_vertical_span = config["hanging_roots_vertical_span"]
+                .as_i64()
+                .or(config["hanging_root_vertical_span"].as_i64())
+                .unwrap_or(0) as i32;
+            let hanging_root_state_provider =
+                value_to_block_state_provider(&config["hanging_root_state_provider"]);
+            let hanging_root_placement_attempts = config["hanging_root_placement_attempts"]
+                .as_i64()
+                .unwrap_or(0) as i32;
+            let allowed_vertical_water_for_tree = config["allowed_vertical_water_for_tree"]
+                .as_i64()
+                .unwrap_or(0) as i32;
+            let allowed_tree_position = value_to_block_predicate(&config["allowed_tree_position"]);
+
+            quote! {
+                ConfiguredFeature::RootSystem(crate::generation::feature::features::root_system::RootSystemFeature {
+                    feature: Box::new(#feature),
+                    required_vertical_space_for_tree: #required_vertical_space_for_tree,
+                    root_radius: #root_radius,
+                    root_replaceable: #root_replaceable,
+                    root_state_provider: #root_state_provider,
+                    root_placement_attempts: #root_placement_attempts,
+                    root_column_max_height: #root_column_max_height,
+                    hanging_root_radius: #hanging_root_radius,
+                    hanging_roots_vertical_span: #hanging_roots_vertical_span,
+                    hanging_root_state_provider: #hanging_root_state_provider,
+                    hanging_root_placement_attempts: #hanging_root_placement_attempts,
+                    allowed_vertical_water_for_tree: #allowed_vertical_water_for_tree,
+                    allowed_tree_position: #allowed_tree_position,
+                })
+            }
         }
         "minecraft:multiface_growth" => {
             quote! { ConfiguredFeature::MultifaceGrowth(crate::generation::feature::features::multiface_growth::MultifaceGrowthFeature {}) }

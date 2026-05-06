@@ -387,6 +387,15 @@ impl ConfiguredFeature {
                 feature.generate(chunk, min_y, height, feature_name, random, pos)
             }
             Self::SculkPatch(feature) => feature.generate(block_registry, chunk, random, pos),
+            Self::RootSystem(feature) => feature.generate(
+                chunk,
+                block_registry,
+                min_y,
+                height,
+                feature_name,
+                random,
+                pos,
+            ),
             _ => false, // TODO
         }
     }

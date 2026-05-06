@@ -3595,7 +3595,60 @@ fn build_configured_features() -> std::collections::HashMap<String, ConfiguredFe
     map.insert(
         "rooted_azalea_tree".to_string(),
         ConfiguredFeature::RootSystem(
-            crate::generation::feature::features::root_system::RootSystemFeature {},
+            crate::generation::feature::features::root_system::RootSystemFeature {
+                feature: Box::new(PlacedFeature {
+                    feature: Feature::Named("azalea_tree".to_string()),
+                    placement: vec![],
+                }),
+                required_vertical_space_for_tree: 3i32,
+                root_radius: 3i32,
+                root_replaceable: BlockPredicate::MatchingBlockTag(MatchingBlockTagPredicate {
+                    offset: OffsetBlocksBlockPredicate { offset: None },
+                    tag: pumpkin_data::tag::Block::MINECRAFT_AZALEA_ROOT_REPLACEABLE,
+                }),
+                root_state_provider: BlockStateProvider::Simple(SimpleStateProvider {
+                    state: pumpkin_data::Block::ROOTED_DIRT.default_state,
+                }),
+                root_placement_attempts: 20i32,
+                root_column_max_height: 100i32,
+                hanging_root_radius: 3i32,
+                hanging_roots_vertical_span: 2i32,
+                hanging_root_state_provider: BlockStateProvider::Simple(SimpleStateProvider {
+                    state: {
+                        let mut props = std::collections::HashMap::new();
+                        props.insert("waterlogged".to_string(), "false".to_string());
+                        BlockStateCodec {
+                            name: &pumpkin_data::Block::HANGING_ROOTS,
+                            properties: Some(props),
+                        }
+                        .get_state()
+                    },
+                }),
+                hanging_root_placement_attempts: 20i32,
+                allowed_vertical_water_for_tree: 2i32,
+                allowed_tree_position: BlockPredicate::AllOf(AllOfBlockPredicate {
+                    predicates: vec![
+                        BlockPredicate::AnyOf(AnyOfBlockPredicate {
+                            predicates: vec![
+                                BlockPredicate::MatchingBlockTag(MatchingBlockTagPredicate {
+                                    offset: OffsetBlocksBlockPredicate { offset: None },
+                                    tag: pumpkin_data::tag::Block::MINECRAFT_AIR,
+                                }),
+                                BlockPredicate::MatchingBlockTag(MatchingBlockTagPredicate {
+                                    offset: OffsetBlocksBlockPredicate { offset: None },
+                                    tag: pumpkin_data::tag::Block::MINECRAFT_REPLACEABLE_BY_TREES,
+                                }),
+                            ],
+                        }),
+                        BlockPredicate::MatchingBlockTag(MatchingBlockTagPredicate {
+                            offset: OffsetBlocksBlockPredicate {
+                                offset: Some(Vector3::new(0i32, -1i32, 0i32)),
+                            },
+                            tag: pumpkin_data::tag::Block::MINECRAFT_AZALEA_GROWS_ON,
+                        }),
+                    ],
+                }),
+            },
         ),
     );
     map.insert(
