@@ -2305,7 +2305,22 @@ fn build_configured_features() -> std::collections::HashMap<String, ConfiguredFe
     );
     map.insert(
         "lake_lava".to_string(),
-        ConfiguredFeature::Lake(crate::generation::feature::features::lake::LakeFeature {}),
+        ConfiguredFeature::Lake(crate::generation::feature::features::lake::LakeFeature {
+            fluid: BlockStateProvider::Simple(SimpleStateProvider {
+                state: {
+                    let mut props = std::collections::HashMap::new();
+                    props.insert("level".to_string(), "0".to_string());
+                    BlockStateCodec {
+                        name: &pumpkin_data::Block::LAVA,
+                        properties: Some(props),
+                    }
+                    .get_state()
+                },
+            }),
+            barrier: BlockStateProvider::Simple(SimpleStateProvider {
+                state: pumpkin_data::Block::STONE.default_state,
+            }),
+        }),
     );
     map.insert(
         "large_basalt_columns".to_string(),

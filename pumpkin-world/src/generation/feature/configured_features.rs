@@ -359,6 +359,7 @@ impl ConfiguredFeature {
                 random,
                 pos,
             ),
+            Self::Lake(feature) => feature.generate(block_registry, chunk, random, pos),
             Self::BasaltColumns(feature) => feature.generate(
                 chunk,
                 block_registry,

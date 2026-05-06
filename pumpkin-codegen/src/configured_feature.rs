@@ -613,7 +613,14 @@ pub fn value_to_configured_feature(v: &Value) -> TokenStream {
             quote! { ConfiguredFeature::Fossil(crate::generation::feature::features::fossil::FossilFeature {}) }
         }
         "minecraft:lake" => {
-            quote! { ConfiguredFeature::Lake(crate::generation::feature::features::lake::LakeFeature {}) }
+            let fluid = value_to_block_state_provider(&config["fluid"]);
+            let barrier = value_to_block_state_provider(&config["barrier"]);
+            quote! {
+                ConfiguredFeature::Lake(crate::generation::feature::features::lake::LakeFeature {
+                    fluid: #fluid,
+                    barrier: #barrier,
+                })
+            }
         }
         "minecraft:huge_brown_mushroom" => {
             quote! { ConfiguredFeature::HugeBrownMushroom(crate::generation::feature::features::huge_brown_mushroom::HugeBrownMushroomFeature {}) }
