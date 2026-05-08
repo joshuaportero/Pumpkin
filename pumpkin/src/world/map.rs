@@ -16,19 +16,19 @@ impl Default for MapManager {
 }
 
 impl MapManager {
-    #[must_use] 
+    #[must_use]
     pub fn new() -> Self {
         Self {
             maps: DashMap::new(),
         }
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn get_map(&self, id: i32) -> Option<Arc<Mutex<MapData>>> {
         self.maps.get(&id).map(|m| m.clone())
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn create_map(
         &self,
         id: i32,
@@ -55,7 +55,7 @@ pub struct MapData {
 }
 
 impl MapData {
-    #[must_use] 
+    #[must_use]
     pub fn new(dimension: Dimension, x: i32, z: i32, scale: i8) -> Self {
         Self {
             scale,
