@@ -84,14 +84,12 @@ pub struct ChunkData {
     pub dirty: AtomicBool,
 }
 
-use pumpkin_nbt::pnbt::PNbtCompound;
-
 pub struct ChunkEntityData {
     /// Chunk X
     pub x: i32,
     /// Chunk Z
     pub z: i32,
-    pub data: Mutex<FxHashMap<uuid::Uuid, PNbtCompound>>,
+    pub data: Mutex<FxHashMap<uuid::Uuid, NbtCompound>>,
 
     pub dirty: AtomicBool,
 }

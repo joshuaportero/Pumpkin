@@ -55,8 +55,9 @@ where
     }
 
     async fn write(&self, backend: &Self::WriteBackend) -> Result<(), std::io::Error> {
-        let bytes =
-            pumpkin_nbt::to_pnbt(&self.data).map_err(|e| std::io::Error::other(e.to_string()))?;
+        let mut bytes = Vec::new();
+        pumpkin_nbt::to_bytes_unnamed(&self.data, &mut bytes)
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
 
         let compressed = compress_to_vec(&bytes[..], CompressionLevel::Fastest);
 
@@ -70,11 +71,12 @@ where
         std::io::Read::read_to_end(&mut decoder, &mut decompressed)
             .map_err(|e| ChunkReadingError::IoError(e.kind()))?;
 
-        let data: PumpData = pumpkin_nbt::from_pnbt(&decompressed).map_err(|e| {
-            ChunkReadingError::ParsingError(
-                crate::chunk::ChunkParsingError::ErrorDeserializingChunk(e.to_string()),
-            )
-        })?;
+        let data: PumpData = pumpkin_nbt::from_bytes_unnamed(std::io::Cursor::new(decompressed))
+            .map_err(|e| {
+                ChunkReadingError::ParsingError(
+                    crate::chunk::ChunkParsingError::ErrorDeserializingChunk(e.to_string()),
+                )
+            })?;
 
         Ok(Self {
             data,

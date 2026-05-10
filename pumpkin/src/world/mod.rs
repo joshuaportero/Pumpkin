@@ -66,8 +66,7 @@ use pumpkin_data::{
 };
 use pumpkin_data::{BlockDirection, BlockState, translation};
 use pumpkin_inventory::screen_handler::InventoryPlayer;
-use pumpkin_nbt::pnbt::PNbtCompound;
-use pumpkin_nbt::to_bytes_unnamed;
+use pumpkin_nbt::{compound::NbtCompound, to_bytes_unnamed};
 use pumpkin_protocol::bedrock::client::set_actor_data::{
     CSetActorData, EntityMetadata, MetadataValue, PropertySyncData, entity_data_flag,
     entity_data_key,
@@ -335,7 +334,7 @@ impl World {
         let base_entity = entity.get_entity();
         let uuid = base_entity.entity_uuid;
         let current_chunk_coordinate = base_entity.block_pos.load().chunk_position();
-        let mut nbt = PNbtCompound::new();
+        let mut nbt = NbtCompound::new();
         entity.write_nbt(&mut nbt).await;
         if let Some(old_chunk) = base_entity.first_loaded_chunk_position.load() {
             let old_chunk = old_chunk.to_vec2_i32();
@@ -2670,46 +2669,34 @@ impl World {
                 };
                 let position = Vector2::new(chunk.x, chunk.z);
 
-                let chunk = if level.is_chunk_watched(&position) {
-                    chunk
-                } else {
+                if !level.is_chunk_watched(&position) {
                     trace!(
                         "Received chunk {:?}, but it is no longer watched... cleaning",
                         &position
                     );
                     let mut ids_to_remove = Vec::new();
 
-                    let mut entities_to_load = Vec::new();
-                    let mut entity_data = Vec::new();
-                    {
-                        let mut data = chunk.data.lock().await;
-                        for (uuid, entity_nbt) in data.iter_mut() {
-                            let Ok(id) = entity_nbt.get_string() else {
-                                warn!("Entity has no ID");
-                                continue;
-                            };
-                            let Some(entity_type) = EntityType::from_name(&id) else {
-                                warn!("Entity has no valid Entity Type {id}");
-                                continue;
-                            };
-                            entity_data.push((*uuid, entity_type, entity_nbt.clone()));
-                        }
-                    }
-
-                    for (uuid, entity_type, mut entity_nbt) in entity_data {
+                    for (uuid, entity_nbt) in chunk.data.lock().await.iter() {
+                        let Some(id) = entity_nbt.get_string("id") else {
+                            warn!("Entity has no ID");
+                            continue;
+                        };
+                        let Some(entity_type) =
+                            EntityType::from_name(id.strip_prefix("minecraft:").unwrap_or(id))
+                        else {
+                            warn!("Entity has no valid Entity Type {id}");
+                            continue;
+                        };
                         // Pos is zero since it will read from nbt
                         let entity =
-                            from_type(entity_type, Vector3::new(0.0, 0.0, 0.0), &world, uuid).await;
-                        entity_nbt.read_pos = 0;
-                        entity.read_nbt_non_mut(&mut entity_nbt).await;
-                        entities_to_load.push(entity);
-                    }
-
-                    for entity in entities_to_load {
+                            from_type(entity_type, Vector3::new(0.0, 0.0, 0.0), &world, *uuid)
+                                .await;
+                        entity.read_nbt_non_mut(entity_nbt).await;
                         let base_entity = entity.get_entity();
+
                         ids_to_remove.push(VarInt(base_entity.entity_id));
 
-                        let mut nbt = PNbtCompound::new();
+                        let mut nbt = NbtCompound::new();
                         entity.write_nbt(&mut nbt).await;
                         if let Some(old_chunk) = base_entity.first_loaded_chunk_position.load() {
                             let old_chunk = old_chunk.to_vec2_i32();
@@ -2721,65 +2708,40 @@ impl World {
 
                             let mut data = chunk.data.lock().await;
                             if old_chunk == current_chunk_coordinate {
-                                data.insert(base_entity.entity_uuid, nbt.clone());
-                                return;
+                                data.insert(*uuid, nbt);
+                                continue;
                             }
 
                             // The chunk has changed, lets remove the entity from the old chunk
-                            data.remove(&base_entity.entity_uuid);
+                            data.remove(uuid);
                         }
-                        chunk
-                            .data
-                            .lock()
-                            .await
-                            .insert(base_entity.entity_uuid, nbt.clone());
-                        chunk.mark_dirty(true);
                     }
-
                     if !ids_to_remove.is_empty() {
-                        world.entities.rcu(|current_entities| {
-                            let mut new_entities = (**current_entities).clone();
-                            new_entities.retain(|e| {
-                                !ids_to_remove.contains(&VarInt(e.get_entity().entity_id))
-                            });
-                            new_entities
-                        });
                         player
                             .client
                             .enqueue_packet(&CRemoveEntities::new(&ids_to_remove))
                             .await;
                     }
-                    level.clean_entity_chunk(&position);
-
                     continue 'main;
-                };
+                }
 
                 // Add all new Entities to the world
                 let mut entities_to_add: Vec<Arc<dyn EntityBase>> = Vec::new();
-                let mut entity_data = Vec::new();
-                {
-                    let mut data = chunk.data.lock().await;
-                    for (uuid, entity_nbt) in data.iter_mut() {
-                        let Ok(id) = entity_nbt.get_string() else {
-                            debug!("Entity has no ID");
-                            continue;
-                        };
-                        let Some(entity_type) =
-                            EntityType::from_name(id.strip_prefix("minecraft:").unwrap_or(&id))
-                        else {
-                            warn!("Entity has no valid Entity Type {id}");
-                            continue;
-                        };
-                        entity_data.push((*uuid, entity_type, entity_nbt.clone()));
-                    }
-                }
-
-                for (uuid, entity_type, mut entity_nbt) in entity_data {
+                for (uuid, entity_nbt) in chunk.data.lock().await.iter() {
+                    let Some(id) = entity_nbt.get_string("id") else {
+                        debug!("Entity has no ID");
+                        continue;
+                    };
+                    let Some(entity_type) =
+                        EntityType::from_name(id.strip_prefix("minecraft:").unwrap_or(id))
+                    else {
+                        warn!("Entity has no valid Entity Type {id}");
+                        continue;
+                    };
                     // Pos is zero since it will read from nbt
                     let entity =
-                        from_type(entity_type, Vector3::new(0.0, 0.0, 0.0), &world, uuid).await;
-                    entity_nbt.read_pos = 0;
-                    entity.read_nbt_non_mut(&mut entity_nbt).await;
+                        from_type(entity_type, Vector3::new(0.0, 0.0, 0.0), &world, *uuid).await;
+                    entity.read_nbt_non_mut(entity_nbt).await;
                     let base_entity = entity.get_entity();
                     player
                         .client
@@ -3215,7 +3177,7 @@ impl World {
 
         let block_pos = base_entity.block_pos.load();
         let chunk_coordinate = block_pos.chunk_position();
-        let mut nbt = PNbtCompound::new();
+        let mut nbt = NbtCompound::new();
         entity.write_nbt(&mut nbt).await;
 
         self.spawn_state.load().add_entity(self, entity.as_ref());
