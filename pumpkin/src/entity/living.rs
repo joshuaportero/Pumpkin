@@ -20,8 +20,7 @@ use std::{collections::HashMap, sync::atomic::AtomicI32};
 use tracing::warn;
 
 use super::experience_orb::ExperienceOrbEntity;
-use super::{Entity, NBTStorage};
-use super::{EntityBase, NBTStorageInit};
+use super::{Entity, EntityBase, NBTStorage};
 use crate::block::OnLandedUponArgs;
 use crate::entity::attributes::AttributeInstance;
 use crate::entity::attributes::Modifier;
@@ -1955,6 +1954,39 @@ impl EntityBase for LivingEntity {
                         .play_sound(Sound::ItemShieldBlock, SoundCategory::Players, &player_pos)
                         .await;
 
+                    if let Some(attacker_player) = cause.and_then(|c| c.get_player()) {
+                        let held_item = attacker_player.inventory().held_item();
+                        let is_axe = held_item.lock().await.is_axe();
+                        if is_axe {
+                            let mut disable_chance = 0.25;
+                            let is_sprinting = attacker_player
+                                .living_entity
+                                .entity
+                                .sprinting
+                                .load(Ordering::Relaxed);
+                            if is_sprinting {
+                                disable_chance = 1.0;
+                            }
+
+                            if rand::random::<f32>() < disable_chance {
+                                if let Some(victim_player) = caller.get_player() {
+                                    victim_player
+                                        .start_cooldown("minecraft:shield".to_string(), 100)
+                                        .await;
+                                    self.clear_active_hand().await;
+
+                                    use pumpkin_protocol::java::client::play::CEntityStatus;
+                                    world
+                                        .broadcast_packet_all(&CEntityStatus::new(
+                                            self.entity.entity_id,
+                                            30,
+                                        ))
+                                        .await;
+                                }
+                            }
+                        }
+                    }
+
                     let active_hand = self.active_hand.lock().await;
                     if let Some(hand) = *active_hand {
                         let slot = if hand == Hand::Left {
@@ -2215,6 +2247,71 @@ impl EntityBase for LivingEntity {
                             .hunger_manager
                             .eat(player, food.nutrition as u8, food.saturation)
                             .await;
+
+                        // Special food effects
+                        if item.item == &Item::GOLDEN_APPLE {
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::REGENERATION,
+                                amplifier: 1,
+                                duration: 100,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::ABSORPTION,
+                                amplifier: 0,
+                                duration: 2400,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                        } else if item.item == &Item::ENCHANTED_GOLDEN_APPLE {
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::REGENERATION,
+                                amplifier: 1,
+                                duration: 400,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::ABSORPTION,
+                                amplifier: 3,
+                                duration: 2400,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::RESISTANCE,
+                                amplifier: 0,
+                                duration: 6000,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                            self.add_effect(pumpkin_data::potion::Effect {
+                                effect_type: &pumpkin_data::effect::StatusEffect::FIRE_RESISTANCE,
+                                amplifier: 0,
+                                duration: 6000,
+                                ambient: false,
+                                show_particles: true,
+                                show_icon: true,
+                                blend: false,
+                            })
+                            .await;
+                        }
                     }
 
                     // Handle potion consumption

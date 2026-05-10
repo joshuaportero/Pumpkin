@@ -3,10 +3,10 @@
 use crate::attributes::Attributes;
 use crate::data_component::DataComponent;
 use crate::data_component::DataComponent::{
-    AttributeModifiers, BlocksAttacks, Consumable, CustomData, CustomName, Damage, DamageResistant,
-    DeathProtection, Enchantable, Enchantments, Equippable, FireworkExplosion, Fireworks, Food,
-    ItemModel, ItemName, JukeboxPlayable, MapId, MaxDamage, MaxStackSize, PotionContents,
-    StoredEnchantments, Tool, Unbreakable, UseCooldown, Weapon,
+    AttributeModifiers, BlocksAttacks, ChargedProjectiles, Consumable, CustomData, CustomName,
+    Damage, DamageResistant, DeathProtection, Enchantable, Enchantments, Equippable,
+    FireworkExplosion, Fireworks, Food, ItemModel, ItemName, JukeboxPlayable, MapId, MaxDamage,
+    MaxStackSize, PotionContents, StoredEnchantments, Tool, Unbreakable, UseCooldown, Weapon,
 };
 use crate::effect::{self, StatusEffect};
 use crate::entity_type::EntityType;
@@ -67,6 +67,9 @@ pub fn read_data(id: DataComponent, data: &NbtTag) -> Option<Box<dyn DataCompone
         StoredEnchantments => Some(StoredEnchantmentsImpl::read_data(data)?.to_dyn()),
         UseCooldown => Some(UseCooldownImpl::read_data(data)?.to_dyn()),
         MapId => Some(MapIdImpl::read_data(data)?.to_dyn()),
+        DataComponent::ChargedProjectiles => {
+            Some(ChargedProjectilesImpl::read_data(data)?.to_dyn())
+        }
         _ => None,
     }
 }
@@ -1522,8 +1525,38 @@ impl DataComponentImpl for MapIdImpl {
 pub struct MapDecorationsImpl;
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct MapPostProcessingImpl;
-#[derive(Clone, Debug, Hash, PartialEq, Eq)]
-pub struct ChargedProjectilesImpl;
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChargedProjectilesImpl {
+    pub projectiles: Vec<NbtCompound>,
+}
+
+impl ChargedProjectilesImpl {
+    fn read_data(data: &NbtTag) -> Option<Self> {
+        let list = data.extract_list()?;
+        let mut projectiles = Vec::new();
+        for item in list {
+            projectiles.push(item.extract_compound()?.clone());
+        }
+        Some(Self { projectiles })
+    }
+}
+
+impl DataComponentImpl for ChargedProjectilesImpl {
+    fn write_data(&self) -> NbtTag {
+        let mut list = Vec::new();
+        for item in &self.projectiles {
+            list.push(NbtTag::Compound(item.clone()));
+        }
+        NbtTag::List(list)
+    }
+
+    fn get_hash(&self) -> i32 {
+        0
+    }
+
+    default_impl!(ChargedProjectiles);
+}
+
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct BundleContentsImpl;
 /// Status effect instance for potion contents

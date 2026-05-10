@@ -35,7 +35,7 @@ use uuid::Uuid;
 use pumpkin_data::attributes::Attributes;
 use pumpkin_data::block_properties::{BlockProperties, HorizontalFacing};
 use pumpkin_data::damage::DamageType;
-use pumpkin_data::data_component_impl::{AttributeModifiersImpl, Operation};
+use pumpkin_data::data_component_impl::{AttributeModifiersImpl, EnchantmentsImpl, Operation};
 use pumpkin_data::data_component_impl::{EquipmentSlot, EquippableImpl, ToolImpl, WeaponImpl};
 use pumpkin_data::effect::StatusEffect;
 use pumpkin_data::entity::{EntityPose, EntityStatus, EntityType};
@@ -873,6 +873,23 @@ impl Player {
 
         // Modify the added damage based on the multiplier.
         let mut damage = base_damage + add_damage * damage_multiplier;
+
+        if let Some(strength) = self
+            .living_entity
+            .get_effect(&pumpkin_data::effect::StatusEffect::STRENGTH)
+            .await
+        {
+            damage += 3.0 * (f64::from(strength.amplifier) + 1.0);
+        }
+        if let Some(weakness) = self
+            .living_entity
+            .get_effect(&pumpkin_data::effect::StatusEffect::WEAKNESS)
+            .await
+        {
+            damage -= 4.0 * (f64::from(weakness.amplifier) + 1.0);
+        }
+        damage = damage.max(0.0);
+
         let pos = victim_entity.pos.load();
         let attack_type = AttackType::new(self, attack_cooldown_progress as f32).await;
 
@@ -911,6 +928,18 @@ impl Player {
             return;
         }
 
+        if let Some(enchantments) = item_stack
+            .lock()
+            .await
+            .get_data_component::<EnchantmentsImpl>()
+        {
+            for (enchantment, level) in enchantments.enchantment.iter() {
+                if **enchantment == Enchantment::FIRE_ASPECT {
+                    victim_entity.set_on_fire_for_ticks(*level as u32 * 80);
+                }
+            }
+        }
+
         if is_mace_smash {
             let fall_distance = self.living_entity.fall_distance.load();
             self.living_entity.fall_distance.store(0.0);
@@ -947,6 +976,42 @@ impl Player {
                 AttackType::Knockback => knockback_strength += 1.0,
                 AttackType::Sweeping => {
                     combat::spawn_sweep_particle(attacker_entity, &world, &pos).await;
+
+                    let mut sweep_damage = 1.0;
+                    if let Some(enchantments) = item_stack
+                        .lock()
+                        .await
+                        .get_data_component::<EnchantmentsImpl>()
+                    {
+                        for (enchantment, level) in enchantments.enchantment.iter() {
+                            if **enchantment == Enchantment::SWEEPING_EDGE {
+                                sweep_damage +=
+                                    damage as f32 * (*level as f32 / (*level as f32 + 1.0));
+                            }
+                        }
+                    }
+
+                    let search_box = BoundingBox::new(
+                        Vector3::new(pos.x - 1.0, pos.y - 0.5, pos.z - 1.0),
+                        Vector3::new(pos.x + 1.0, pos.y + 0.5, pos.z + 1.0),
+                    );
+                    let victims = world.get_all_at_box(&search_box);
+                    for other_victim in victims {
+                        if other_victim.get_entity().entity_id != victim_entity.entity_id
+                            && other_victim.get_entity().entity_id != attacker_entity.entity_id
+                        {
+                            other_victim
+                                .damage_with_context(
+                                    other_victim.as_ref(),
+                                    sweep_damage,
+                                    DamageType::PLAYER_ATTACK,
+                                    None,
+                                    Some(self),
+                                    Some(self),
+                                )
+                                .await;
+                        }
+                    }
                 }
                 _ => {}
             }
