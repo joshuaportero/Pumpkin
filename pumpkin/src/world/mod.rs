@@ -881,7 +881,7 @@ impl World {
         }
         let block_entity_elapsed = block_entity_start.elapsed();
 
-        //self.level.chunk_loading.lock().unwrap().send_change();
+        self.level.chunk_loading.lock().unwrap().send_change();
 
         // Tick the End dragon fight (only on THE_END worlds).
         if let Some(ref fight_mutex) = self.dragon_fight {

@@ -134,13 +134,15 @@ impl CrossbowItem {
             .cloned();
 
         if let Some(charged) = projectiles {
-            let mut has_multishot = false;
-            if let Some(enchantments) = stack.get_data_component::<EnchantmentsImpl>() {
-                has_multishot = enchantments
-                    .enchantment
-                    .iter()
-                    .any(|(e, _)| **e == pumpkin_data::Enchantment::MULTISHOT);
-            }
+            let has_multishot =
+                stack
+                    .get_data_component::<EnchantmentsImpl>()
+                    .is_some_and(|enchantments| {
+                        enchantments
+                            .enchantment
+                            .iter()
+                            .any(|(e, _)| **e == pumpkin_data::Enchantment::MULTISHOT)
+                    });
 
             let world = player.world();
             world

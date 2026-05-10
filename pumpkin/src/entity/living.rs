@@ -20,7 +20,7 @@ use std::{collections::HashMap, sync::atomic::AtomicI32};
 use tracing::warn;
 
 use super::experience_orb::ExperienceOrbEntity;
-use super::{Entity, EntityBase, NBTStorage};
+use super::{Entity, EntityBase, NBTStorage, NBTStorageInit};
 use crate::block::OnLandedUponArgs;
 use crate::entity::attributes::AttributeInstance;
 use crate::entity::attributes::Modifier;
@@ -47,8 +47,8 @@ use pumpkin_nbt::compound::NbtCompound;
 use pumpkin_nbt::tag::NbtTag;
 use pumpkin_protocol::codec::var_int::VarInt;
 use pumpkin_protocol::java::client::play::{
-    Animation, CEntityAnimation, CHurtAnimation, CSetPlayerInventory, CTakeItemEntity,
-    CUpdateMobEffect,
+    Animation, CEntityAnimation, CEntityStatus, CHurtAnimation, CSetPlayerInventory,
+    CTakeItemEntity, CUpdateMobEffect,
 };
 use pumpkin_protocol::{
     codec::item_stack_seralizer::ItemStackSerializer,
@@ -1968,21 +1968,20 @@ impl EntityBase for LivingEntity {
                                 disable_chance = 1.0;
                             }
 
-                            if rand::random::<f32>() < disable_chance {
-                                if let Some(victim_player) = caller.get_player() {
-                                    victim_player
-                                        .start_cooldown("minecraft:shield".to_string(), 100)
-                                        .await;
-                                    self.clear_active_hand().await;
+                            if rand::random::<f32>() < disable_chance
+                                && let Some(victim_player) = caller.get_player()
+                            {
+                                victim_player
+                                    .start_cooldown("minecraft:shield".to_string(), 100)
+                                    .await;
+                                self.clear_active_hand().await;
 
-                                    use pumpkin_protocol::java::client::play::CEntityStatus;
-                                    world
-                                        .broadcast_packet_all(&CEntityStatus::new(
-                                            self.entity.entity_id,
-                                            30,
-                                        ))
-                                        .await;
-                                }
+                                world
+                                    .broadcast_packet_all(&CEntityStatus::new(
+                                        self.entity.entity_id,
+                                        30,
+                                    ))
+                                    .await;
                             }
                         }
                     }

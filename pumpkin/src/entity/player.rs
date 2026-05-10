@@ -497,6 +497,7 @@ pub struct Player {
     pub tab_list_latency: AtomicI32,
     pub tab_list_listed: AtomicBool,
     pub enchantment_seed: AtomicI32,
+    pub fishing_bobber: AtomicI32,
 }
 
 impl Player {
@@ -633,6 +634,7 @@ impl Player {
             tab_list_order: AtomicI32::new(0),
             tab_list_latency: AtomicI32::new(0),
             tab_list_listed: AtomicBool::new(false),
+            fishing_bobber: AtomicI32::new(-1),
         }
     }
 

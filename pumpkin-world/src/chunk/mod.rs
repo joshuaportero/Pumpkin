@@ -30,7 +30,7 @@ pub const SUBCHUNK_VOLUME: usize = CHUNK_AREA * CHUNK_WIDTH;
 #[derive(Error, Debug)]
 pub enum ChunkReadingError {
     #[error("Io error: {0}")]
-    IoError(std::io::ErrorKind),
+    IoError(std::io::Error),
     #[error("Invalid header")]
     InvalidHeader,
     #[error("Region is invalid")]
@@ -46,7 +46,7 @@ pub enum ChunkReadingError {
 #[derive(Error, Debug)]
 pub enum ChunkWritingError {
     #[error("Io error: {0}")]
-    IoError(std::io::ErrorKind),
+    IoError(std::io::Error),
     #[error("Compression error {0}")]
     Compression(CompressionError),
     #[error("Chunk serializing error: {0}")]
